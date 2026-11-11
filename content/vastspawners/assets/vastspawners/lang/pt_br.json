@@ -1,0 +1,22 @@
+{
+  "vastspawners.at_limit": "já está no limite",
+  "vastspawners.mob": "Mob",
+  "vastspawners.off": "desligado",
+  "vastspawners.on": "ligado",
+  "vastspawners.stat.anywhere": "Qualquer Chão",
+  "vastspawners.stat.batch": "Tamanho do Lote",
+  "vastspawners.stat.crowd": "Limite de Multidão",
+  "vastspawners.stat.dazed": "Atordoado",
+  "vastspawners.stat.echoes": "Ecos",
+  "vastspawners.stat.hushed": "Silenciado",
+  "vastspawners.stat.kindled": "Em Chamas",
+  "vastspawners.stat.lightproof": "À Prova de Luz",
+  "vastspawners.stat.longest_wait": "Espera Máxima",
+  "vastspawners.stat.reach": "Alcance do Jogador",
+  "vastspawners.stat.shortest_wait": "Espera Mínima",
+  "vastspawners.stat.spread": "Espalhamento",
+  "vastspawners.stat.unwatched": "Sem Vigia",
+  "vastspawners.stat.vigour": "Vigor",
+  "vastspawners.stat.wired": "Ligado à Redstone",
+  "vastspawners.stat.young": "Filhote"
+}

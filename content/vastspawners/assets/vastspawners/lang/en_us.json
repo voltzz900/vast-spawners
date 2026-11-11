@@ -1,0 +1,22 @@
+{
+  "vastspawners.at_limit": "already at its limit",
+  "vastspawners.mob": "Mob",
+  "vastspawners.off": "off",
+  "vastspawners.on": "on",
+  "vastspawners.stat.anywhere": "Any Ground",
+  "vastspawners.stat.batch": "Batch Size",
+  "vastspawners.stat.crowd": "Crowd Limit",
+  "vastspawners.stat.dazed": "Dazed",
+  "vastspawners.stat.echoes": "Echoes",
+  "vastspawners.stat.hushed": "Hushed",
+  "vastspawners.stat.kindled": "Kindled",
+  "vastspawners.stat.lightproof": "Lightproof",
+  "vastspawners.stat.longest_wait": "Longest Wait",
+  "vastspawners.stat.reach": "Player Reach",
+  "vastspawners.stat.shortest_wait": "Shortest Wait",
+  "vastspawners.stat.spread": "Spread",
+  "vastspawners.stat.unwatched": "Unwatched",
+  "vastspawners.stat.vigour": "Vigour",
+  "vastspawners.stat.wired": "Wired",
+  "vastspawners.stat.young": "Young"
+}

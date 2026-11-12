@@ -1,6 +1,6 @@
 [mod]
 id = "vastspawners_native"
-version = "0.2.0"
+version = "0.2.1"
 priority = 100
 
 # The commit it is built for: besides the native hook points it hooks the spawner's own tick.

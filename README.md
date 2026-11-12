@@ -41,8 +41,9 @@ again, it is the same spawner. The item's tooltip lists the mob and the changes.
 - **Jade:** looking at a spawner shows each of its numbers (waits, batch size, crowd limit, player reach, spread)
   and every modifier it carries. The lines can be turned off in Jade's plugin options (Vast Spawners).
 - **JEI (Just Enough Items):** a **Spawner Modifiers** category: **U** on a modifier shows what it does to a spawner,
-  its limit and what it does with quartz in the off hand; **U** on a spawner lists every modifier. It needs a Just
-  Enough Items with plugin categories (`register_category`); with an older one only the tooltips below show.
+  its limit and what it does with quartz in the off hand; **U** on a spawner lists every modifier. It needs Just
+  Enough Items 1.1.3 or newer (plugin categories, `register_category`); with an older one only the tooltips below
+  show.
 - **Modifiers' tooltips:** every modifier item says what one use does to a spawner and what quartz does.
 
 Each integration is compiled in only when its mod is in the same build: without Jade or JEI, nothing of it is.

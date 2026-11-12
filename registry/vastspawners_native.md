@@ -1,6 +1,6 @@
 # Registry page: Vast Spawners (native)
 
-- **File:** `vastspawners_native-0.2.0.hnmod` (release v0.2.0), kind: native mod
+- **File:** `vastspawners_native-0.2.1.hnmod` (release v0.2.1), kind: native mod
 - **Icon:** `icons/vastspawners_native.png`
 - **Name:** Vast Spawners
 - **Summary:** Change spawners with items, mine them with Silk Touch, and shape the mobs they make. Needs its content mod.

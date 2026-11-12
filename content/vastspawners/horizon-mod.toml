@@ -1,6 +1,6 @@
 id = "vastspawners"
 name = "Vast Spawners (content)"
-version = "0.2.0"
+version = "0.2.1"
 description = "Vast Spawners' words in English and Brazilian Portuguese. Install it with the native mod."
 authors = ["voltzz900"]
 api = "0.2"

@@ -9,7 +9,7 @@ use crate::nbt::{JavaString, Tag};
 
 pub const ID: &str = "vastspawners_native";
 pub const NAME: &str = "Vast Spawners";
-pub const VERSION: &str = "0.2.0";
+pub const VERSION: &str = "0.2.1";
 pub const DESCRIPTION: &str = "Change spawners with items, mine them with Silk Touch, and shape the mobs they make.";
 
 /// What a modifier changes.

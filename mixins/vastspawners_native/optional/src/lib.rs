@@ -36,7 +36,7 @@ pub fn with_mod(input: TokenStream) -> TokenStream {
     if game_rs().contains(&format!("mod {module} {{")) { kept } else { otherwise }
 }
 
-/// `with_source!("pub fn register_category(", { items } else { items })`: the first items when that text is in the
+/// `with_source!("fn register_category(", { items } else { items })`: the first items when that text is in the
 /// game's source (a mod's API that only some of its versions have), else the second.
 #[proc_macro]
 pub fn with_source(input: TokenStream) -> TokenStream {

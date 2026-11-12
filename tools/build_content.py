@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "content/vastspawners"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 STATS = {
     "shortest_wait": ("Shortest Wait", "Espera Mínima"),

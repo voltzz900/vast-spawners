@@ -274,7 +274,7 @@ pub(super) fn register_integrations() {
             super::jade::register_option("vastspawners_spawner", "Vast Spawners", true);
             super::jade::register_server(jade_spawner);
         });
-        vastspawners_optional::with_source!("pub fn register_category(category: PluginCategory)", {
+        vastspawners_optional::with_source!("fn register_category(category: PluginCategory)", {
             super::justenoughitems_glue::register_category(super::justenoughitems_glue::PluginCategory {
                 id: "vastspawners:modifiers",
                 title: |_| text("jei.title", "Spawner Modifiers"),
@@ -308,7 +308,7 @@ fn jei_lines(m: &Modifier) -> Vec<String> {
     lines
 }
 
-vastspawners_optional::with_source!("pub fn register_category(category: PluginCategory)", {
+vastspawners_optional::with_source!("fn register_category(category: PluginCategory)", {
     /// JEI's "Spawner Modifiers": each modifier used on a spawner, with what it does.
     fn jei_recipes(_: &super::Game<'_>) -> Vec<super::justenoughitems_glue::PluginRecipe> {
         MODIFIERS

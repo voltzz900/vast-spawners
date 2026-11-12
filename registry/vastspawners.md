@@ -1,6 +1,6 @@
 # Registry page: Vast Spawners (content)
 
-- **File:** `vastspawners-0.2.0.hmod` (release v0.2.0), kind: mod
+- **File:** `vastspawners-0.2.1.hmod` (release v0.2.1), kind: mod
 - **Icon:** `icons/vastspawners.png`
 - **Name:** Vast Spawners (content)
 - **Summary:** The words of Vast Spawners in English and Brazilian Portuguese. Needs the native mod.

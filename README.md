@@ -36,6 +36,17 @@ The shortest wait never goes above the longest, nor the longest below the shorte
 A spawner mined with a Silk Touch tool drops itself, with everything it was changed to and the mob it makes. Placed
 again, it is the same spawner. The item's tooltip lists the mob and the changes.
 
+## Jade and JEI
+
+- **Jade:** looking at a spawner shows each of its numbers (waits, batch size, crowd limit, player reach, spread)
+  and every modifier it carries. The lines can be turned off in Jade's plugin options (Vast Spawners).
+- **JEI (Just Enough Items):** a **Spawner Modifiers** category: **U** on a modifier shows what it does to a spawner,
+  its limit and what it does with quartz in the off hand; **U** on a spawner lists every modifier. It needs a Just
+  Enough Items with plugin categories (`register_category`); with an older one only the tooltips below show.
+- **Modifiers' tooltips:** every modifier item says what one use does to a spawner and what quartz does.
+
+Each integration is compiled in only when its mod is in the same build: without Jade or JEI, nothing of it is.
+
 ## How it works
 
 Everything lives in the spawner's own data: the game's six numbers, light rules in its spawn data, and the rest as

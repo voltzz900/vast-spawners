@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "content/vastspawners"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 STATS = {
     "shortest_wait": ("Shortest Wait", "Espera Mínima"),
@@ -31,6 +31,11 @@ WORDS = {
     "off": ("off", "desligado"),
     "at_limit": ("already at its limit", "já está no limite"),
     "mob": ("Mob", "Mob"),
+    "modifier": ("Spawner modifier", "Modificador de spawner"),
+    "reverse": ("With quartz in the off hand", "Com quartzo na mão secundária"),
+    "limit": ("limit", "limite"),
+    "quartz": ("With quartz", "Com quartzo"),
+    "jei.title": ("Spawner Modifiers", "Modificadores de Spawner"),
 }
 
 

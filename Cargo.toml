@@ -1,6 +1,6 @@
 [package]
 name = "vastspawners-horizon"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 description = "Vast Spawners for Horizon. Builds the injected logic module standalone, for its tests."

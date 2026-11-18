@@ -1,6 +1,6 @@
 # Vast Spawners
 
-A native mod and a content mod for [Horizon](https://github.com/horizon-rust/horizon): change spawners with items,
+A native mod for [Horizon](https://github.com/horizon-rust/horizon), on its mod API: change spawners with items,
 mine them with Silk Touch, and shape the mobs they make. It is built from the MIT code and data of
 [Apothic Spawners](https://github.com/Shadows-of-Fire/Apothic-Spawners) (by Shadows_of_Fire), with names and words
 of its own.
@@ -36,23 +36,17 @@ The shortest wait never goes above the longest, nor the longest below the shorte
 A spawner mined with a Silk Touch tool drops itself, with everything it was changed to and the mob it makes. Placed
 again, it is the same spawner. The item's tooltip lists the mob and the changes.
 
-## Jade and JEI
+## Tooltips
 
-- **Jade:** looking at a spawner shows each of its numbers (waits, batch size, crowd limit, player reach, spread)
-  and every modifier it carries. The lines can be turned off in Jade's plugin options (Vast Spawners).
-- **JEI (Just Enough Items):** a **Spawner Modifiers** category: **U** on a modifier shows what it does to a spawner,
-  its limit and what it does with quartz in the off hand; **U** on a spawner lists every modifier. It needs Just
-  Enough Items 1.1.3 or newer (plugin categories, `register_category`); with an older one only the tooltips below
-  show.
-- **Modifiers' tooltips:** every modifier item says what one use does to a spawner and what quartz does.
-
-Each integration is compiled in only when its mod is in the same build: without Jade or JEI, nothing of it is.
+Every modifier item says what one use does to a spawner, its limit and what quartz does.
 
 ## How it works
 
 Everything lives in the spawner's own data: the game's six numbers, light rules in its spawn data, and the rest as
 tags on the mob it makes (`vastspawners.*`), which the mob keeps. Its mobs also keep their changes in the world
-(a dazed mob stays dazed).
+(a dazed mob stays dazed). A wired spawner without a redstone signal stores no player range (no player is ever near
+it), an unwatched one the widest; while either is on, its own reach is kept in a tag. Worlds and items from 0.1 and
+0.2 read the same.
 
 ## Not yet
 
@@ -61,21 +55,22 @@ tags on the mob it makes (`vastspawners.*`), which the mob keeps. Its mobs also 
 - Unstable spawners (an exploded spawner turning unstable), a delay before spawner mobs despawn, the spawn egg
   blacklist and the advancements.
 - Dazed mobs don't fall or get pushed as Apothic Spawners' movable ones do.
+- Jade's lines and JEI's Spawner Modifiers category (0.2): they reached into those mods' code inside the game's
+  build, which the mod API doesn't allow. They can come back once Jade and JEI publish functions for other mods.
 
 ## Install
 
-- **The native mod:** `vastspawners_native-<version>.hnmod`. Install it, then build natives in the launcher.
-- **The content mod:** `vastspawners-<version>.hmod`, with the words in English and Brazilian Portuguese. Install
-  both.
+`vastspawners-<version>.hmod`: one package, the code and its words in English and Brazilian Portuguese. Install it,
+then build natives in the launcher. From 0.2, remove `vastspawners_native` (and the old content `vastspawners`) first.
 
 ## Building
 
-- `tools/build_content.py` builds `content/vastspawners` (lang).
-- `cargo test` runs the tests of `mixins/vastspawners_native/logic.rs` (built on its own by `src/lib.rs`).
-- `tools/package.py` packs both files into `dist/`.
+- `tools/build_content.py` writes the lang files into `mod/assets/vastspawners` and `mod/horizon-mod.toml`.
+- In `mod/`: `cargo check` and `cargo test` (the modifiers' logic, `mod/src/logic.rs`), with the SDK linked at
+  `mod/.horizon/sdk/api`.
+- `tools/package.py` packs `mod/` into `dist/` with `cargo horizon-mod build`.
 
-It is pinned to Horizon `fdc87ae` (Nightly 2026-11-08): besides the native hook points it reads the range in the
-spawner's own tick (`server_tick_spawner_of`) for wired spawners.
+It is pinned to Horizon `702ab1e` and uses only the mod API's hooks and Parts.
 
 ## License
 

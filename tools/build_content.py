@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
-"""Builds content/vastspawners: Vast Spawners' words in English and Brazilian Portuguese (its own)."""
+"""Builds Vast Spawners' content into `mod/` (the mod's package): its words in English and Brazilian Portuguese
+(its own) in `mod/assets/vastspawners/lang`, and `mod/horizon-mod.toml`.
+
+Usage: build_content.py
+"""
 import json
 import shutil
 from pathlib import Path
 
+NS = "vastspawners"
+VERSION = "0.3.0"
+# The Horizon build the mod is made for, and the horizon-mixins tool its `[native]` names.
+HORIZON = "702ab1e3b42921ef025841802e59d64060b6c0b4"
+MIXINS = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "content/vastspawners"
-VERSION = "0.2.1"
+OUT = ROOT / "mod"
 
 STATS = {
     "shortest_wait": ("Shortest Wait", "Espera Mínima"),
@@ -34,34 +42,27 @@ WORDS = {
     "modifier": ("Spawner modifier", "Modificador de spawner"),
     "reverse": ("With quartz in the off hand", "Com quartzo na mão secundária"),
     "limit": ("limit", "limite"),
-    "quartz": ("With quartz", "Com quartzo"),
-    "jei.title": ("Spawner Modifiers", "Modificadores de Spawner"),
 }
 
 
 def main():
-    if OUT.exists():
-        shutil.rmtree(OUT)
+    lang = OUT / "assets" / NS / "lang"
+    if (OUT / "assets").exists():
+        shutil.rmtree(OUT / "assets")
+    lang.mkdir(parents=True)
     en, br = {}, {}
     for key, (e, p) in STATS.items():
-        en[f"vastspawners.stat.{key}"], br[f"vastspawners.stat.{key}"] = e, p
+        en[f"{NS}.stat.{key}"], br[f"{NS}.stat.{key}"] = e, p
     for key, (e, p) in WORDS.items():
-        en[f"vastspawners.{key}"], br[f"vastspawners.{key}"] = e, p
-    lang = OUT / "assets/vastspawners/lang"
-    lang.mkdir(parents=True)
+        en[f"{NS}.{key}"], br[f"{NS}.{key}"] = e, p
     (lang / "en_us.json").write_text(json.dumps(dict(sorted(en.items())), indent=2, ensure_ascii=False) + "\n")
     (lang / "pt_br.json").write_text(json.dumps(dict(sorted(br.items())), indent=2, ensure_ascii=False) + "\n")
     (OUT / "horizon-mod.toml").write_text(
-        'id = "vastspawners"\n'
-        'name = "Vast Spawners (content)"\n'
-        f'version = "{VERSION}"\n'
-        'description = "Vast Spawners\' words in English and Brazilian Portuguese. Install it with the native mod."\n'
-        'authors = ["voltzz900"]\n'
-        'api = "0.2"\n'
-        'side = "both"\n'
-        'capabilities = ["registries"]\n'
-    )
-    print(f"{OUT}: {len(en)} lang keys")
+        f'id = "{NS}"\nname = "Vast Spawners"\nversion = "{VERSION}"\n'
+        'description = "Change spawners with items, mine them with Silk Touch, and shape the mobs they make."\n'
+        'authors = ["voltzz900"]\napi = "0.2"\nside = "both"\ncapabilities = ["registries"]\n\n'
+        f'[native]\ngame = "26.3"\nhorizon = "{HORIZON}"\nmixins = "{MIXINS}"\n')
+    print(f"{NS}: {len(en)} lang keys")
 
 
 if __name__ == "__main__":

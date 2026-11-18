@@ -1,3 +1,7 @@
-/target
 /dist
-Cargo.lock
+__pycache__/
+/mod/.horizon
+/mod/target
+/mod/LICENSE
+/mod/NOTICE-apothic-spawners.txt
+/mod/Cargo.lock

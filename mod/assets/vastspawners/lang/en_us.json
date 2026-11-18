@@ -1,12 +1,10 @@
 {
   "vastspawners.at_limit": "already at its limit",
-  "vastspawners.jei.title": "Spawner Modifiers",
   "vastspawners.limit": "limit",
   "vastspawners.mob": "Mob",
   "vastspawners.modifier": "Spawner modifier",
   "vastspawners.off": "off",
   "vastspawners.on": "on",
-  "vastspawners.quartz": "With quartz",
   "vastspawners.reverse": "With quartz in the off hand",
   "vastspawners.stat.anywhere": "Any Ground",
   "vastspawners.stat.batch": "Batch Size",

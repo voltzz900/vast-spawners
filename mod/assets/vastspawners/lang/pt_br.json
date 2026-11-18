@@ -1,12 +1,10 @@
 {
   "vastspawners.at_limit": "já está no limite",
-  "vastspawners.jei.title": "Modificadores de Spawner",
   "vastspawners.limit": "limite",
   "vastspawners.mob": "Mob",
   "vastspawners.modifier": "Modificador de spawner",
   "vastspawners.off": "desligado",
   "vastspawners.on": "ligado",
-  "vastspawners.quartz": "Com quartzo",
   "vastspawners.reverse": "Com quartzo na mão secundária",
   "vastspawners.stat.anywhere": "Qualquer Chão",
   "vastspawners.stat.batch": "Tamanho do Lote",

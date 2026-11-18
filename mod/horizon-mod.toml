@@ -1,6 +1,6 @@
 id = "vastspawners"
 name = "Vast Spawners"
-version = "0.3.0"
+version = "0.3.1"
 description = "Change spawners with items, mine them with Silk Touch, and shape the mobs they make."
 authors = ["voltzz900"]
 api = "0.2"
@@ -9,5 +9,5 @@ capabilities = ["registries"]
 
 [native]
 game = "26.3"
-horizon = "702ab1e3b42921ef025841802e59d64060b6c0b4"
+horizon = "0b14f8acfd97fa2c750e42795249dcc981178ca4"
 mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

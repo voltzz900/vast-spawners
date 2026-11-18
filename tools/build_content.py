@@ -9,9 +9,9 @@ import shutil
 from pathlib import Path
 
 NS = "vastspawners"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 # The Horizon build the mod is made for, and the horizon-mixins tool its `[native]` names.
-HORIZON = "702ab1e3b42921ef025841802e59d64060b6c0b4"
+HORIZON = "0b14f8acfd97fa2c750e42795249dcc981178ca4"
 MIXINS = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "mod"

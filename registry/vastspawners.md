@@ -1,6 +1,6 @@
 # Registry page: Vast Spawners
 
-- **File:** `vastspawners-0.3.0.hmod` (release v0.3.0), kind: native mod
+- **File:** `vastspawners-0.3.1.hmod` (release v0.3.1), kind: native mod
 - **Icon:** `icons/vastspawners.png`
 - **Name:** Vast Spawners
 - **Summary:** Change spawners with items, mine them with Silk Touch, and shape the mobs they make.
@@ -22,4 +22,4 @@ A native mod for spawners, built from the MIT code and data of [Apothic Spawners
 
 **What it changes in the game**: a right click on a spawner with those items (the item is spent, the spawner's data changes), a spawner's drop when mined with Silk Touch and its data when placed, the range a wired spawner looks for a player in, the health of a weakened spawner's mobs, and the loot of an echoing spawner's mobs. It works through the mod API (hooks and Parts on the vanilla spawner; no mixins). Everything it keeps lives in the spawner's and the mob's own data; no files, no network.
 
-0.3.0 replaces 0.2's two files (`vastspawners_native` .hnmod and the `vastspawners` content mod); spawners changed with them keep their changes. Pinned to Horizon 702ab1e. Not yet: Jade and JEI lines (0.2 compiled them into those mods' builds; the mod API has no way yet), the egg-catching enchantment, unstable spawners and advancements. Not affiliated with or endorsed by Apothic Spawners' authors; none of its assets or lang are used.
+0.3.0 replaces 0.2's two files (`vastspawners_native` .hnmod and the `vastspawners` content mod); spawners changed with them keep their changes. Pinned to Horizon 0b14f8a. Not yet: Jade and JEI lines (0.2 compiled them into those mods' builds; the mod API has no way yet), the egg-catching enchantment, unstable spawners and advancements. Not affiliated with or endorsed by Apothic Spawners' authors; none of its assets or lang are used.

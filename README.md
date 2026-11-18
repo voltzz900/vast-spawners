@@ -70,7 +70,7 @@ then build natives in the launcher. From 0.2, remove `vastspawners_native` (and 
   `mod/.horizon/sdk/api`.
 - `tools/package.py` packs `mod/` into `dist/` with `cargo horizon-mod build`.
 
-It is pinned to Horizon `702ab1e` and uses only the mod API's hooks and Parts.
+It is pinned to Horizon `0b14f8a` and uses only the mod API's hooks and Parts.
 
 ## License
 

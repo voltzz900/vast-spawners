@@ -1,23 +1,29 @@
 //! Vast Spawners: change spawners with items, mine them with Silk Touch, and shape the mobs they make.
 //!
 //! A modifier used on a spawner changes its data (`logic.rs`); quartz in the off hand turns the change back. A
-//! spawner mined with Silk Touch drops itself with that data, and placed again it is the same spawner. A wired
+//! spawner mined with Silk Touch drops itself with the mod's own record of it (its mob and the changes), and placed
+//! again the spawner is made anew from that record, checked; only an operator's item puts raw spawner data. A wired
 //! spawner keeps no player range without a redstone signal, an unwatched one the widest; its mobs carry the rest.
 //! Built from the MIT code and data of Apothic Spawners (Shadows_of_Fire); the names and words are this mod's own.
 
 mod logic;
 
-use logic::{MODIFIERS, Modifier, Shown};
+use logic::{Carried, MODIFIERS, Modifier, Shown};
 use mod_api::{
     self, BlockDropsEvent, BlockPart, Compound, EntityJoinLevelEvent, Flow, Hand, Host, HostSide, Hooks, InteractionResult,
-    ItemDrop, ItemKey, ItemPart, ItemStack, LevelDimension, LevelHost, LevelRef, LevelTicksHost, LootDropsEvent,
+    Identifier, ItemDrop, ItemKey, ItemPart, ItemStack, LevelDimension, LevelHost, LevelRef, LevelTicksHost, LootDropsEvent,
     LevelTickPreEvent, NeighborChangedEvent, OnBlockPlacedByEvent, Registrar, RegistrationContext, ServerHost, Tag, Text, TooltipEvent, UseItemOnBlockEvent, UsePhase,
 };
 use std::sync::{Mutex, OnceLock};
 
 const SPAWNER: &str = "minecraft:spawner";
-/// The item component a spawner item keeps its data in (vanilla's, as 0.1 and 0.2 wrote it).
+/// The item component vanilla keeps a spawner's raw data in (as 0.1 to 0.3.1 wrote it): the game puts it only for
+/// operators, and this mod reads it raw only for them.
 const BLOCK_ENTITY_DATA: &str = "minecraft:block_entity_data";
+/// The item component this mod keeps its own record in (under [`logic::CARRIED`]).
+const CUSTOM_DATA: &str = "minecraft:custom_data";
+/// The permission level an operator has (vanilla's game master level).
+const OPERATOR: u8 = 2;
 
 /// The items the mod reads, issued at registration.
 struct Keys {
@@ -88,10 +94,29 @@ fn enchantment_level(stack: &ItemStack, id: &str) -> i32 {
     }
 }
 
-/// The spawner data an item carries.
-fn stack_spawner_data(stack: &ItemStack) -> Option<Tag> {
+/// An item component of a stack.
+fn component(stack: &ItemStack, key: &str) -> Option<Tag> {
     let patch = stack.components()?.as_nbt();
-    patch.iter().find(|(k, _)| k.to_string_lossy() == BLOCK_ENTITY_DATA).map(|(_, v)| v.clone())
+    patch.iter().find(|(k, _)| k.to_string_lossy() == key).map(|(_, v)| v.clone())
+}
+
+/// The raw spawner data an item carries (vanilla's component).
+fn stack_spawner_data(stack: &ItemStack) -> Option<Tag> {
+    component(stack, BLOCK_ENTITY_DATA)
+}
+
+/// The spawner an item carries, as the mod's record: its own, else read from an older item's raw data. Not checked.
+fn stack_carried(stack: &ItemStack) -> Option<Carried> {
+    let own = component(stack, CUSTOM_DATA).and_then(|c| c.get(logic::CARRIED).and_then(logic::decode));
+    own.or_else(|| stack_spawner_data(stack).and_then(|nbt| logic::from_spawner(&nbt)))
+}
+
+/// Whether a spawner item may bring back mob `id`: a registered entity type with a spawn egg (a mob, as a creative
+/// player may already set a spawner to with an egg), not tagged a boss.
+fn mob_allowed(host: &dyn Host, id: &str) -> bool {
+    let registered = host.entity_type_keys().into_iter().any(|k| k.id(host) == id);
+    let egg = Identifier::parse(&format!("{id}_spawn_egg")).ok().and_then(|egg| host.item_key(&egg)).is_some();
+    registered && egg && !host.entity_type_in_tag(id, "c:bosses")
 }
 
 /// A spawner's saved data without what the place gives it.
@@ -170,27 +195,34 @@ struct SpawnerItemPart;
 #[mod_api::horizon_part]
 impl ItemPart for SpawnerItemPart {
     fn on_block_placed_by(&self, host: &mut dyn ServerHost, event: &mut OnBlockPlacedByEvent<'_>) {
-        // The game lets only operators place spawner data, as vanilla does.
-        let Some(nbt) = stack_spawner_data(event.stack) else { return };
         let level = match event.placer {
             Some(player) => player.level(&*host),
             None => host.level(host.dimension()),
         };
         let Some(level) = level else { return };
-        let mut nbt = portable(nbt);
+        // Raw spawner data is an operator's to place, as vanilla has it; anyone else's item puts only the mod's
+        // record, checked, made into a spawner anew. No placer or no known level counts as no operator.
+        let operator = event.placer.and_then(|p| p.permission_level(&*host)).is_some_and(|l| l >= OPERATOR);
+        let raw = stack_spawner_data(event.stack).filter(|_| operator);
+        let mut nbt = match raw {
+            Some(nbt) => portable(nbt),
+            None => {
+                let checked = stack_carried(event.stack).and_then(|c| logic::sanitize(c, |id| mob_allowed(&*host, id)));
+                let Some(carried) = checked else { return };
+                logic::build(&carried)
+            }
+        };
         logic::settle_range(&mut nbt, level.has_neighbor_signal(&*host, event.pos));
         write(host, level, event.pos, nbt);
     }
 
     fn tooltip(&self, _host: &dyn mod_api::ClientHost, event: &mut TooltipEvent<'_>) {
-        let Some(nbt) = stack_spawner_data(event.stack) else { return };
-        if let Some(Tag::String(kind)) = logic::first_entity(&nbt).and_then(|e| e.get("id")) {
-            let kind = kind.to_string_lossy();
-            let name = Text::translate(format!("entity.{}", kind.replace(':', ".")), Vec::new());
-            let line = coloured(tr("mob"), "gray").append(Text::literal(": ")).append(coloured(name, "white"));
-            event.lines.push((line, u32::MAX));
-        }
-        for (m, value) in logic::changes(&nbt) {
+        // What placing it would put (the mob's registration is the server's to check).
+        let Some(carried) = stack_carried(event.stack).and_then(|c| logic::sanitize(c, |_| true)) else { return };
+        let name = Text::translate(format!("entity.{}", carried.entity.replace(':', ".")), Vec::new());
+        let line = coloured(tr("mob"), "gray").append(Text::literal(": ")).append(coloured(name, "white"));
+        event.lines.push((line, u32::MAX));
+        for (m, value) in carried.values {
             event.lines.push((stat_line(m, logic::shown(m, value), "blue", "blue"), u32::MAX));
         }
     }
@@ -285,19 +317,20 @@ impl Hooks for VastSpawners {
         Flow::Cancel
     }
 
-    /// A spawner mined with Silk Touch drops itself, with its data.
+    /// A spawner mined with Silk Touch drops itself, with the mod's record of it (none for a spawner without a mob).
     fn block_drops(&self, level: &dyn LevelHost, event: &mut BlockDropsEvent<'_>) -> Flow {
         if level.state_block(event.state) != Some(SPAWNER) || !event.tool.is_some_and(|t| enchantment_level(t, "minecraft:silk_touch") > 0) {
             return Flow::Continue;
         }
         let Some(keys) = KEYS.get() else { return Flow::Continue };
         let Some(data) = event.block_entity.and_then(|e| level.block_entity_data(e)) else { return Flow::Continue };
-        let mut nbt = portable(Tag::Compound(data));
-        logic::put(&mut nbt, "id", Some(Tag::String("minecraft:mob_spawner".into())));
         let Some(mut stack) = ItemStack::new(keys.spawner, 1) else { return Flow::Continue };
-        let patch: Compound = [(BLOCK_ENTITY_DATA.into(), nbt)].into_iter().collect();
-        if stack.apply_components(&patch).is_err() {
-            return Flow::Continue;
+        if let Some(carried) = logic::from_spawner(&Tag::Compound(data)) {
+            let custom = Tag::compound([(logic::CARRIED, logic::encode(&carried))]);
+            let patch: Compound = [(CUSTOM_DATA.into(), custom)].into_iter().collect();
+            if stack.apply_components(&patch).is_err() {
+                return Flow::Continue;
+            }
         }
         let p = event.pos;
         let at = [f64::from(p.x) + 0.5, f64::from(p.y) + 0.5, f64::from(p.z) + 0.5];

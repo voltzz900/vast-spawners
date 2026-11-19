@@ -20,6 +20,7 @@ pub enum Stat {
 }
 
 /// A modifier: the item held in the main hand, the change, and its bound; quartz in the other hand turns it back.
+#[derive(Debug, PartialEq)]
 pub struct Modifier {
     pub item: &'static str,
     pub stat: Stat,
@@ -362,6 +363,138 @@ pub fn changes(nbt: &Tag) -> Vec<(&'static Modifier, f64)> {
     out
 }
 
+// ---- what a spawner item carries -------------------------------------------------------------------------------
+
+/// The key, in a spawner item's `minecraft:custom_data`, of this mod's own record of the spawner it was mined from.
+pub const CARRIED: &str = "vastspawners:spawner";
+
+/// Mobs a spawner item never brings back without an operator, whatever else the game says of them.
+pub const BOSSES: &[&str] = &["minecraft:ender_dragon", "minecraft:wither"];
+
+/// A spawner as an item carries it: the mob it makes and the modifiers' values that differ from the game's own.
+/// Nothing else of the spawner's data (its mob's other NBT, its potentials, its raw numbers) goes with it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Carried {
+    pub entity: String,
+    pub values: Vec<(&'static Modifier, f64)>,
+}
+
+/// The lowest and highest value a modifier can give (0 and 1 for a flag).
+pub fn bounds(m: &Modifier) -> (f64, f64) {
+    (m.limit.min(m.back_limit), m.limit.max(m.back_limit))
+}
+
+/// The value of a number tag, any width.
+fn numeric(tag: &Tag) -> Option<f64> {
+    match tag {
+        Tag::Byte(v) => Some(f64::from(*v)),
+        Tag::Short(v) => Some(f64::from(*v)),
+        Tag::Int(v) => Some(f64::from(*v)),
+        Tag::Long(v) => Some(*v as f64),
+        Tag::Float(bits) => Some(f64::from(f32::from_bits(*bits))),
+        Tag::Double(bits) => Some(f64::from_bits(*bits)),
+        _ => None,
+    }
+}
+
+/// Whether `id` is shaped as a registry name (`namespace:path`, lowercase).
+pub fn valid_id(id: &str) -> bool {
+    let Some((namespace, path)) = id.split_once(':') else { return false };
+    let ok = |s: &str, slash: bool| {
+        !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"_-.".contains(&b) || (slash && b == b'/'))
+    };
+    ok(namespace, false) && ok(path, true)
+}
+
+/// The record of a spawner's data (as the world holds it, or as a 0.1 to 0.3.1 item carried it): its first mob and
+/// the changes it shows. None without a mob. Not checked: see [`sanitize`].
+pub fn from_spawner(nbt: &Tag) -> Option<Carried> {
+    let Some(Tag::String(entity)) = first_entity(nbt)?.get("id") else { return None };
+    Some(Carried { entity: entity.to_string_lossy(), values: changes(nbt) })
+}
+
+/// The record as the item keeps it: `{entity: "<id>", <modifier name>: <value>, ...}`.
+pub fn encode(carried: &Carried) -> Tag {
+    let mut tag = Tag::compound([("entity", Tag::String(carried.entity.as_str().into()))]);
+    for (m, value) in &carried.values {
+        put(&mut tag, m.name, Some(Tag::Double(value.to_bits())));
+    }
+    tag
+}
+
+/// The record an item keeps (see [`encode`]); keys it doesn't know are left out. Not checked: see [`sanitize`].
+pub fn decode(tag: &Tag) -> Option<Carried> {
+    let Some(Tag::String(entity)) = tag.get("entity") else { return None };
+    let values = MODIFIERS.iter().filter_map(|m| tag.get(m.name).and_then(numeric).map(|v| (m, v))).collect();
+    Some(Carried { entity: entity.to_string_lossy(), values })
+}
+
+/// A record made safe to place: None unless its mob is a well-formed id, not a boss and `allowed` by the game (a
+/// registered mob); each value within its modifier's bounds (whole where the game's are whole, flags on or off,
+/// a value that is no number left out), each modifier once, the shortest wait at most the longest, and values that
+/// are the game's own left out.
+pub fn sanitize(carried: Carried, allowed: impl Fn(&str) -> bool) -> Option<Carried> {
+    let entity = carried.entity;
+    if !valid_id(&entity) || BOSSES.contains(&entity.as_str()) || !allowed(&entity) {
+        return None;
+    }
+    let mut values: Vec<(&'static Modifier, f64)> = Vec::new();
+    for (m, value) in carried.values {
+        if !value.is_finite() || values.iter().any(|(seen, _)| std::ptr::eq(*seen, m)) {
+            continue;
+        }
+        let (low, high) = bounds(m);
+        let value = match m.stat {
+            Stat::Flag(_) => f64::from(u8::from(value >= 0.5)),
+            Stat::Number(_) | Stat::Echo => value.round().clamp(low, high),
+            Stat::Health => ((value * 100.0).round() / 100.0).clamp(low, high),
+        };
+        values.push((m, value));
+    }
+    fn value_of(values: &[(&'static Modifier, f64)], key: &'static str) -> f64 {
+        values.iter().find(|(m, _)| m.stat == Stat::Number(key)).map_or(default_number(key), |(_, v)| *v)
+    }
+    let longest = value_of(&values, "MaxSpawnDelay");
+    if value_of(&values, "MinSpawnDelay") > longest {
+        values.retain(|(m, _)| m.stat != Stat::Number("MinSpawnDelay"));
+        let shortest = MODIFIERS.iter().find(|m| m.stat == Stat::Number("MinSpawnDelay"))?;
+        values.push((shortest, longest));
+    }
+    values.retain(|(m, v)| match m.stat {
+        Stat::Number(key) => (v - default_number(key)).abs() > 1e-9,
+        Stat::Flag(_) | Stat::Echo => *v > 0.0,
+        Stat::Health => *v < 1.0,
+    });
+    values.sort_by_key(|(m, _)| MODIFIERS.iter().position(|x| std::ptr::eq(x, *m)));
+    Some(Carried { entity, values })
+}
+
+/// A spawner's data made from a (sanitized) record alone: its mob by id, the game's six numbers, then each flag
+/// and count as a modifier would set them. The caller settles its range for the redstone signal.
+pub fn build(carried: &Carried) -> Tag {
+    let entity = Tag::compound([("id", Tag::String(carried.entity.as_str().into()))]);
+    let mut nbt = Tag::compound([("SpawnData", Tag::compound([("entity", entity)]))]);
+    let value = |stat: Stat| carried.values.iter().find(|(m, _)| m.stat == stat).map(|(_, v)| *v);
+    for key in ["MinSpawnDelay", "MaxSpawnDelay", "SpawnCount", "MaxNearbyEntities", "RequiredPlayerRange", "SpawnRange"] {
+        let v = value(Stat::Number(key)).unwrap_or_else(|| default_number(key));
+        put(&mut nbt, key, Some(Tag::Short(v as i16)));
+    }
+    for m in MODIFIERS {
+        if let Stat::Flag(name) = m.stat
+            && value(m.stat).is_some_and(|v| v > 0.5)
+        {
+            set_flag(&mut nbt, name, true);
+        }
+    }
+    if let Some(echo) = value(Stat::Echo).filter(|v| *v > 0.0) {
+        set_counted(&mut nbt, "echo", Some(echo));
+    }
+    if let Some(vigour) = value(Stat::Health).filter(|v| *v < 1.0) {
+        set_counted(&mut nbt, "vigour", Some(vigour));
+    }
+    nbt
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -465,5 +598,144 @@ mod tests {
         apply(&mut nbt, drip, true, false);
         assert_eq!(counted(&nbt, "vigour"), None, "back to full");
         assert_eq!(changes(&nbt).len(), 1, "only the echoes");
+    }
+
+    fn every_change() -> Tag {
+        let mut nbt = spawner();
+        for m in MODIFIERS {
+            apply(&mut nbt, m, false, false);
+        }
+        nbt
+    }
+
+    fn sorted_tags(nbt: &Tag) -> Vec<String> {
+        let mut t = tags(first_entity(nbt).unwrap());
+        t.sort();
+        t
+    }
+
+    fn named(name: &str) -> &'static Modifier {
+        MODIFIERS.iter().find(|m| m.name == name).unwrap()
+    }
+
+    #[test]
+    fn a_mined_spawner_comes_back_the_same() {
+        let original = every_change();
+        let carried = from_spawner(&original).unwrap();
+        let read = sanitize(decode(&encode(&carried)).unwrap(), |_| true).unwrap();
+        assert_eq!(read, carried, "a legal spawner's record survives the item unchanged");
+        let mut placed = build(&read);
+        settle_range(&mut placed, false);
+        assert_eq!(changes(&placed), changes(&original));
+        assert_eq!(sorted_tags(&placed), sorted_tags(&original));
+        assert_eq!(placed.get("RequiredPlayerRange"), original.get("RequiredPlayerRange"));
+        let (p, o) = (first_entity(&placed).unwrap(), first_entity(&original).unwrap());
+        for key in ["id", "NoAI", "Silent", "IsBaby", "Age", "Fire"] {
+            assert_eq!(p.get(key), o.get(key), "{key}");
+        }
+        assert!(placed.get("SpawnData").unwrap().get("custom_spawn_rules").is_some());
+        assert!(placed.get("SpawnPotentials").is_none());
+    }
+
+    #[test]
+    fn an_old_unwatched_item_keeps_its_reach() {
+        let mut nbt = spawner();
+        apply(&mut nbt, modifier("minecraft:prismarine_crystals"), false, false);
+        apply(&mut nbt, modifier("minecraft:nether_star"), false, false);
+        assert_eq!(nbt.get("RequiredPlayerRange"), Some(&Tag::Short(WIDEST)));
+        let carried = sanitize(from_spawner(&nbt).unwrap(), |_| true).unwrap();
+        assert!(carried.values.contains(&(named("reach"), 20.0)), "the kept reach, not the stored widest");
+        let mut placed = build(&carried);
+        settle_range(&mut placed, false);
+        assert_eq!(placed.get("RequiredPlayerRange"), Some(&Tag::Short(WIDEST)));
+        assert_eq!(number(&placed, "RequiredPlayerRange"), 20.0);
+    }
+
+    #[test]
+    fn out_of_range_values_are_clamped() {
+        let carried = Carried {
+            entity: "minecraft:zombie".into(),
+            values: vec![
+                (named("batch"), 500.0),
+                (named("crowd"), -7.0),
+                (named("spread"), 3.4),
+                (named("echoes"), 99.0),
+                (named("vigour"), 0.01),
+                (named("dazed"), 42.0),
+                (named("young"), 0.0),
+                (named("shortest_wait"), 1600.0),
+                (named("longest_wait"), 100.0),
+                (named("batch"), 2.0),
+            ],
+        };
+        let read = sanitize(carried, |_| true).unwrap();
+        let value = |name: &str| read.values.iter().find(|(m, _)| m.name == name).map(|(_, v)| *v);
+        assert_eq!(value("batch"), Some(16.0), "the first of a repeated modifier, clamped");
+        assert_eq!(value("crowd"), Some(1.0));
+        assert_eq!(value("spread"), Some(3.0), "whole");
+        assert_eq!(value("echoes"), Some(3.0));
+        assert_eq!(value("vigour"), Some(0.2));
+        assert_eq!(value("dazed"), Some(1.0));
+        assert_eq!(value("young"), None, "off is the game's own");
+        assert_eq!(value("longest_wait"), Some(100.0));
+        assert_eq!(value("shortest_wait"), Some(100.0), "never above the longest");
+        assert_eq!(read.values.iter().filter(|(m, _)| m.name == "batch").count(), 1);
+        let placed = build(&read);
+        assert_eq!(placed.get("SpawnCount"), Some(&Tag::Short(16)));
+        assert_eq!(placed.get("MinSpawnDelay"), Some(&Tag::Short(100)));
+    }
+
+    #[test]
+    fn values_that_are_no_numbers_are_left_out() {
+        let carried = Carried {
+            entity: "minecraft:zombie".into(),
+            values: vec![(named("batch"), f64::NAN), (named("crowd"), f64::INFINITY), (named("echoes"), f64::NEG_INFINITY)],
+        };
+        assert!(sanitize(carried, |_| true).unwrap().values.is_empty());
+        let mut tag = Tag::compound([("entity", Tag::String("minecraft:zombie".into()))]);
+        put(&mut tag, "batch", Some(Tag::Double(f64::NAN.to_bits())));
+        put(&mut tag, "crowd", Some(Tag::String("9".into())));
+        assert!(sanitize(decode(&tag).unwrap(), |_| true).unwrap().values.is_empty());
+    }
+
+    #[test]
+    fn only_allowed_mobs_come_back() {
+        let carried = |id: &str| Carried { entity: id.into(), values: Vec::new() };
+        let registered = |id: &str| matches!(id, "minecraft:zombie" | "minecraft:wither" | "minecraft:ender_dragon");
+        assert!(sanitize(carried("minecraft:zombie"), registered).is_some());
+        assert!(sanitize(carried("minecraft:creeper"), registered).is_none(), "unknown to the game");
+        assert!(sanitize(carried("minecraft:wither"), registered).is_none(), "a boss");
+        assert!(sanitize(carried("minecraft:ender_dragon"), |_| true).is_none(), "a boss, whatever the game says");
+        for bad in ["", "zombie", "minecraft:", ":zombie", "Minecraft:Zombie", "minecraft:zom bie", "a:b:c"] {
+            assert!(sanitize(carried(bad), |_| true).is_none(), "{bad:?}");
+        }
+        assert!(valid_id("somemod:mobs/big_slime"));
+    }
+
+    #[test]
+    fn extra_fields_are_ignored() {
+        let mut tag = encode(&Carried { entity: "minecraft:zombie".into(), values: vec![(named("batch"), 6.0)] });
+        let nasty = Tag::compound([("entity", Tag::compound([("id", Tag::String("minecraft:wither".into()))]))]);
+        put(&mut tag, "SpawnData", Some(nasty.clone()));
+        put(&mut tag, "SpawnPotentials", Some(Tag::List(vec![Tag::compound([("data", nasty)])])));
+        put(&mut tag, "SpawnCount", Some(Tag::Short(200)));
+        put(&mut tag, "Delay", Some(Tag::Short(0)));
+        let read = sanitize(decode(&tag).unwrap(), |_| true).unwrap();
+        assert_eq!(read, Carried { entity: "minecraft:zombie".into(), values: vec![(named("batch"), 6.0)] });
+        let placed = build(&read);
+        assert_eq!(placed.get("SpawnCount"), Some(&Tag::Short(6)));
+        assert!(placed.get("SpawnPotentials").is_none() && placed.get("Delay").is_none());
+        assert_eq!(first_entity(&placed).and_then(|e| e.get("id")), Some(&Tag::String("minecraft:zombie".into())));
+        let mut old = spawner();
+        put(&mut old, "SpawnCount", Some(Tag::Short(300)));
+        if let Some(entity) = old.get_mut("SpawnData").and_then(|d| d.get_mut("entity")) {
+            put(entity, "Passengers", Some(Tag::List(vec![Tag::compound([("id", Tag::String("minecraft:wither".into()))])])));
+            put(entity, "Tags", Some(Tag::List(vec![Tag::String("vastspawners.echo=50".into())])));
+        }
+        let read = sanitize(from_spawner(&old).unwrap(), |_| true).unwrap();
+        let placed = build(&read);
+        assert_eq!(placed.get("SpawnCount"), Some(&Tag::Short(16)), "an old item's count, clamped");
+        assert_eq!(counted(&placed, "echo"), Some(3.0));
+        assert!(first_entity(&placed).unwrap().get("Passengers").is_none(), "nothing of the mob but its id");
     }
 }

@@ -1,6 +1,6 @@
 id = "vastspawners"
 name = "Vast Spawners"
-version = "0.3.1"
+version = "0.3.2"
 description = "Change spawners with items, mine them with Silk Touch, and shape the mobs they make."
 authors = ["voltzz900"]
 api = "0.2"

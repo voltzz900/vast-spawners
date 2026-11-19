@@ -33,8 +33,13 @@ The shortest wait never goes above the longest, nor the longest below the shorte
 
 ## Silk Touch
 
-A spawner mined with a Silk Touch tool drops itself, with everything it was changed to and the mob it makes. Placed
-again, it is the same spawner. The item's tooltip lists the mob and the changes.
+A spawner mined with a Silk Touch tool drops itself, with the mod's own record of it: the mob it makes and everything
+it was changed to. Placed again, the spawner is made anew from that record, checked first: the mob must be a registered
+mob with a spawn egg and not a boss (the Wither, the Ender Dragon, anything tagged `c:bosses`), and every change is
+kept within the modifiers' limits. Nothing else of the old spawner's data goes with the item (its mob's other data, or
+a list of several mobs: the first one is kept). Items from 0.1 to 0.3.1 are read the same way. Only an operator's
+item still puts raw spawner data (vanilla's `block_entity_data`), as the game itself allows only for operators. The
+item's tooltip lists the mob and the changes.
 
 ## Tooltips
 

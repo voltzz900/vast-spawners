@@ -4,7 +4,7 @@
 - **Icon:** `icons/vastspawners.png`
 - **Name:** Vast Spawners
 - **Summary:** Change spawners with items, mine them with Silk Touch, and shape the mobs they make.
-- **Categories:** game mechanics, mobs, utility
+- **Categories:** game-mechanics, mobs, utility
 - **Tags:** spawners, mob-farms, silk-touch, redstone, translation
 - **License:** MIT
 - **Source:** https://github.com/voltzz900/vast-spawners
